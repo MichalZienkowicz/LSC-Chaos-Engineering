@@ -18,6 +18,23 @@ Firs, we recommend using Docker Desktop, which you can install via following lin
 Most of tools in this excersise are designed for Linux OS. If you work on machine with Windows, we recommend installing Linux via WSL. In our case we have used [Linux Mint](https://linuxmint.com/), but most of distributions are expected to be compatible:
 [https://learn.microsoft.com/en-us/windows/wsl/install](https://learn.microsoft.com/en-us/windows/wsl/install)
 
+### Providing WSL Resources:
+You might need to ensure enough RAM and CPU cores for your Docker Desktop Container.
+You can do this by modyfying WSL config file. In the **PowerShell**, prompt:
+
+`notepad "$env:USERPROFILE\.wslconfig"` 
+
+Allow for creating new file if asked.
+
+Inside the .wslconfig file insert example settings:
+``` TOML
+[wsl2]
+memory=8GB
+processors=4
+swap=2GB
+```
+Then save the file, and close it. Shut down Linux environment (if you had it already running) via **PowerShell** `wsl --shutdown`. Restart the Docker Desktop app if required.
+
 If you are using Linux via WSL, make sure to enable WSL integration in Docker Desktop by going to `Settings` -> `Resources` -> `WSL Integration` and enabling the integration.
 
 ![alt text](image-2.png)
@@ -66,17 +83,35 @@ We recommend installing [Helm](https://helm.sh/docs/intro/install/) using instru
 
 ## 5. Creating your cluster  
 
-**Pewnie dodam tu jakiś plik konfiguracyjny żeby przepisać potrzebne zasoby**
+After succesfull installations, you should be able to create your cluster, which will be your playground for the rest of this excersise. In our case, we named our group of nodes `chaos-lab`. Use provided `kind-config.yaml` file, to create cluster containing 3 nodes (control-plane and two workers).
 
-After succesfull installations, you should be able to create your cluster, which will be your playground for the rest of this excersise. In our case, we named it `chaos-lab`
+`kind create cluster --name chaos-lab --config kind-config.yaml`
 
-`kind create cluster --name chaos-lab`
+![alt text](image.png)
 
 You should see the cluster running in your Docker Desktop panel: 
 
-![alt text](image-7.png)
+![alt text](image-1.png)
 
 *If during your experiments the system will get too damaged (stop responding), you can always delete it using*** `delete cluster --name chaos-lab`, *and create a new one.*
 
-**jestem w trakcie ogarniania dalszych instalacji i konfiguracji Boutique, Prometheusa i Grafany, Fortio**
+## 6. Google Online Boutique
+
+Download Google Online Boutique via GitHub:
+
+`git clone https://github.com/GoogleCloudPlatform/microservices-demo.git`
+
+`cd microservices-demo`
+
+Run the app on the new cluster:
+
+`kubectl apply -f ./release/kubernetes-manifests.yaml`
+
+You can spectate the application building process via
+
+`kubectl get pods --watch`
+
+You might need to wait up to 10 minutes for all the microservices to have **`Running`** status.
+
+**Na ten moment nie udało mi się uruchomić Boutique**
 
