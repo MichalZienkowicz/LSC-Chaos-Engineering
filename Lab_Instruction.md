@@ -33,7 +33,12 @@ memory=8GB
 processors=4
 swap=2GB
 ```
-Then save the file, and close it. Shut down Linux environment (if you had it already running) via **PowerShell** `wsl --shutdown`. Restart the Docker Desktop app if required.
+Then save the file, and close it. Shut down Linux environment (if you had it already running) via **PowerShell**:
+
+``` PowerShell
+wsl --shutdown
+```
+. Restart the Docker Desktop app if required.
 
 If you are using Linux via WSL, make sure to enable WSL integration in Docker Desktop by going to `Settings` -> `Resources` -> `WSL Integration` and enabling the integration.
 
@@ -45,39 +50,39 @@ You can check your setup by running `docker --version` in the Bash (or WSL termi
 ## 2. kubectl 
 You can install [kubectl](https://kubernetes.io/docs/reference/kubectl/) via bash commands:
 
-`curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"`
-
-`sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl`
-
+```Bash
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
 and check the installation using:
 
-`kubectl version --client`
+```Bash
+kubectl version --client
+```
 
 ![alt text](image-4.png)
 
 ## 3. kind
 Install [kind](https://kind.sigs.k8s.io/docs/user/quick-start/) using something like:
 
-`curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64`
-
-`chmod +x ./kind`
-
-`sudo mv ./kind /usr/local/bin/kind`
-
-(`kind --version`)
+```Bash
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+kind --version
+```
 
 ![alt text](image-5.png)
 
 ## 4. Helm
 We recommend installing [Helm](https://helm.sh/docs/intro/install/) using instructions provided on its website:
 
-`curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4`
-
-`chmod 700 get_helm.sh`
-
-`./get_helm.sh`
-
-(`helm version`)
+```Bash
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
+chmod 700 get_helm.sh
+./get_helm.sh
+helm version
+```
 
 ![alt text](image-6.png)
 
@@ -85,33 +90,87 @@ We recommend installing [Helm](https://helm.sh/docs/intro/install/) using instru
 
 After succesfull installations, you should be able to create your cluster, which will be your playground for the rest of this excersise. In our case, we named our group of nodes `chaos-lab`. Use provided `kind-config.yaml` file, to create cluster containing 3 nodes (control-plane and two workers).
 
-`kind create cluster --name chaos-lab --config kind-config.yaml`
+```Bash
+kind create cluster --name chaos-lab --config kind-config.yaml
+```
 
 ![alt text](image.png)
 
 You should see the cluster running in your Docker Desktop panel: 
 
-![alt text](image-1.png)
+![alt text](image-7.png)
 
-*If during your experiments the system will get too damaged (stop responding), you can always delete it using*** `delete cluster --name chaos-lab`, *and create a new one.*
+*If during your experiments the system will get too damaged (stop responding), you can always delete it using* `delete cluster --name chaos-lab`, *and create a new one.*
 
 ## 6. Google Online Boutique
 
 Download Google Online Boutique via GitHub:
 
-`git clone https://github.com/GoogleCloudPlatform/microservices-demo.git`
-
-`cd microservices-demo`
+```Bash
+git clone https://github.com/GoogleCloudPlatform/microservices-demo.git
+cd microservices-demo
+```
 
 Run the app on the new cluster:
 
-`kubectl apply -f ./release/kubernetes-manifests.yaml`
+```Bash
+kubectl apply -f ./release/kubernetes-manifests.yaml
+```
 
 You can spectate the application building process via
 
-`kubectl get pods --watch`
+```Bash
+kubectl get pods --watch
+```
 
-You might need to wait up to 10 minutes for all the microservices to have **`Running`** status.
+You might need to wait up to 10 minutes for all the microservices to have **`Running`** and **`READY`**status.
 
-**Na ten moment nie udało mi się uruchomić Boutique**
+![alt text](image-8.png)
 
+## 7. Prometheus and Grafana
+We will use Helm to add [Prometheus](https://prometheus.io/) to our application:
+
+```Bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts`
+helm repo update
+```
+
+![alt text](image-9.png)
+
+We advise creating separate namespace (we named it `monitoring`) and installling the configured Prometheus and [Grafana](https://grafana.com/) in the `kube-prometheus-stack` provided by the distributors. In case of 
+
+```Bash
+kubectl create namespace monitoring
+helm install monitoring-stack prometheus-community/kube-prometheus-stack --namespace monitoring
+```
+
+After succesfull you can check if the pods are running with 
+
+```Bash
+kubectl get pods -n monitoring
+```
+
+Now, you can start working with Grafana. To access this tool by the browser, we need to first expose the port.
+
+```Bash
+kubectl port-forward -n monitoring svc/monitoring-stack-grafana 3000:80
+```
+
+After running the command, you can open the bowser (Chrome, Edge, Firefox) and acces your port.
+
+`http://localhost:3000`
+
+You should be able to login using default Helm login username:
+
+* Username: `admin`
+
+Password is accessible via the command, that **you should run in the SEPARATE WSL TERMINAL**
+
+```Bash
+kubectl get secret --namespace monitoring monitoring-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+```
+
+After logging into Grafana, you can access the predefined graphs for Kubernetes. Go to `Dashboards` -> `Kubernetes / Compute Resources / Pod` to see example graphs. Leave `Namespace` as 'default' - this is, where our Boutique is running.
+
+![alt text](image-11.png)
+![alt text](image-10.png)
