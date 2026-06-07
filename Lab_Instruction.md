@@ -65,6 +65,9 @@ We recommend installing [Helm](https://helm.sh/docs/intro/install/) using instru
 ![alt text](image-6.png)
 
 ## 5. Creating your cluster  
+
+**Pewnie dodam tu jakiś plik konfiguracyjny żeby przepisać potrzebne zasoby**
+
 After succesfull installations, you should be able to create your cluster, which will be your playground for the rest of this excersise. In our case, we named it `chaos-lab`
 
 `kind create cluster --name chaos-lab`
@@ -73,5 +76,7 @@ You should see the cluster running in your Docker Desktop panel:
 
 ![alt text](image-7.png)
 
-*If during your experiments the system will get too damaged (stop responding), you can always delete it using*** `delete cluster --name chaos-lab`, ***and create a new one.*
+*If during your experiments the system will get too damaged (stop responding), you can always delete it using*** `delete cluster --name chaos-lab`, *and create a new one.*
+
+**jestem w trakcie ogarniania dalszych instalacji i konfiguracji Boutique, Prometheusa i Grafany, Fortio**
 
