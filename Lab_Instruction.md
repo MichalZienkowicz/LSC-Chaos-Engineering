@@ -4,12 +4,18 @@
 
 ## Introduction:
 This instruction provides materials necessary for experimenting with Chaos Engineering and Resilience Testing.
-The project includes deploying a multi-servie application on Kubernetes (Kind) and instrumenting it with basic health metrics. Then systematic failure injection is demonstrated (pod kills, network partitions, latency injections and CPU/memory stress). This excersise, allows you to see how each failure manifests in the metrics and how the system recovers.
+The project includes deploying a multi-servie application on Kubernetes (Kind) and instrumenting it with basic health metrics. Then systematic failure injection is demonstrated (pod kills, network partitions, latency injections and CPU/memory stress). This excersise, allows you to see how each failure manifests in the metrics and userview, and how the system recovers.
 
 ## Tools used:
-[...]
+- Grafana
+- Prometheus
+- Google Online Boutique - Microservices demo
+- Chaos Mesh
+- Kind
+- Helm
+- Locust
 
-# Instruction:
+# Set-up Instruction:
 
 ## 1. Docker Desktop (& WSL)
 Firs, we recommend using Docker Desktop, which you can install via following link:
@@ -127,6 +133,14 @@ You might need to wait up to 10 minutes for all the microservices to have **`Run
 
 ![alt text](image-8.png)
 
+Then set up port forwarding for the frontend of the store.
+
+```Bash
+kubectl port-forward service/frontend-external 8080:80
+```
+
+You can then use [https://localhost:8080](https://localhost:8080) to access the site.
+
 ## 7. Prometheus and Grafana
 We will use Helm to add [Prometheus](https://prometheus.io/) to our application:
 
@@ -174,3 +188,166 @@ After logging into Grafana, you can access the predefined graphs for Kubernetes.
 
 ![alt text](image-11.png)
 ![alt text](image-10.png)
+
+To better see how our interactions with the chaos mesh will affect the cluster we need to increase the scraping frequency.
+
+```Bash
+helm upgrade monitoring-stack prometheus-community/kube-prometheus-stack \
+  -n monitoring \
+  -f prometheus-fast-scrape.yaml \
+  --reuse-values
+```
+
+## 8. Chaos Mesh
+
+To install and use Chaos Mesh we need to add its repository into Helm.
+
+```Bash
+helm repo add chaos-mesh https://charts.chaos-mesh.org
+helm repo update
+```
+
+Then install it to our cluster
+
+```Bash
+helm install chaos-mesh chaos-mesh/chaos-mesh \
+  -n chaos-mesh --create-namespace \
+  --set chaosDaemon.runtime=containerd \
+  --set chaosDaemon.socketPath=/run/containerd/containerd.sock \
+  --set dashboard.securityMode=false
+```
+
+If you want to access the Chaos Mesh dashboard you need to start port forwarding
+
+```Bash
+kubectl port-forward -n chaos-mesh svc/chaos-dashboard 2333:2333
+```
+
+You can then use [https://localhost:2333](https://localhost:2333) to access the site.
+
+If you run into problems and the pods of Chaos Mesh are not starting you can try increasing open file limits
+```Bash
+sudo sysctl fs.inotify.max_user_watches=524288
+sudo sysctl fs.inotify.max_user_instances=512
+```
+
+## 9. Locust
+
+Additionaly, a load generator will prove useful in measuring the effects of the chaos mesh. That's why we use Locust - a simple GUI load generator. To add it to your system use the prepared locust-loadgenerator.yaml file.
+
+```Bash
+kubectl apply -f locust-loadgenerator.yaml
+```
+
+Wait for the pod to start running
+
+```Bash
+kubectl get pods -l app=loadgenerator
+```
+
+Then start port forwarding to access the GUI at [https://localhost:8089](https://localhost:8089).
+
+```Bash
+kubectl port-forward svc/loadgenerator 8089:8089
+```
+
+# Tasks
+
+Formulate a report with answers to questions stated in tasks below.
+
+## Silence before the storm
+
+Go to the boutique site and check available functionalities. Try doing a full buisness path of transaction: from browsing the catalogue to submitting an order.
+
+## Task 1 - Stress test
+
+Open the Grafana dashboard on the checkout pod. Then start the prepared CPU and memory stress test.
+
+```Bash
+kubectl replace --force -f stress-test.yaml
+# this command will also restart the test if you've already done it
+```
+
+Monitor the CPU Throttling and Memory usage graphs. How does the stress test affect those statistics?
+
+When you notice a change, go back to the boutique and try placing an order. Did the order go through? Were there any problems along the way? Include screenshots of any messages recieved during the transactions.
+
+Go back to the Grafana dashboard. Did the CPU Throttling and Memory usage graphs go back to normal? What does it say about the recoverability of the whole system? Include screenshots of the graphs with the incident visible in your report.
+
+## Task 2 - Pod kill 
+
+In this task you will be required to kill pods responsible for two different services. Before starting navigate to a product site (ex. Tank top). Open and inspect the prepared pod-kill-test.yaml file. What service should be down after starting the chaos incident?
+
+Then proceed to initiating the scheduler:
+
+```Bash
+kubectl replace --force -f pod-kill-test.yaml
+```
+
+Refresh the product page. Did anything change? Has the site remained the same? Write your observations in the report.
+
+Remove the scheduler:
+
+```Bash
+kubectl delete -f pod-kill-test.yaml
+```
+
+Open and edit the pod-kill-test.yaml file. Replace `recommendationservice` with `productcatalogservice`.
+
+Run the test again and refresh the page. Is the site working? Can you browse it as usual? Write your observations and compare the results of both experiments. Comment on the implied design of the site and which services are required for the site to function.
+
+Remember to remove the scheduler after the tests:
+
+```Bash
+kubectl delete -f pod-kill-test.yaml
+```
+
+## Task 3 - Network Chaos
+
+In this task we will introduce network latancy to the system and see how it affects the functioning of it.
+
+Before starting the chaos incident navigate to the Locust GUI and start the load generator at 50 maximum users.
+
+Use the command below to find the name of the product catalog service pod and navigate to it in the Grafana dashboard. Leave the output of the command running in the terminal to oversee the pod behaviour.
+
+```Bash
+kubectl get pods --watch
+```
+
+Open the boutique site on your own as well. Is everything working properly?
+
+Now start the latency injection using the prepared network-latency-test.yaml file.
+
+```Bash
+kubectl apply -f network-latency-test.yaml
+```
+
+Refresh the page. Do you notice any latencies?
+
+Go to Locust load generator. How large are the latencies for the users overall?
+
+Inspect the Graphana diagrams. Can you see the influence of the latency and users on the metrics?
+
+Now let the latency run out (it should last about a minute) or force remove it using 
+
+```Bash
+kubectl delete networkchaos catalog-latency
+```
+
+Return to the Graphana dashboard. Are the metrics going back to normal?
+
+Access the boutique site. Is the site back to being usable?
+
+Go to Locust load generator. How are the statistics looking at this moment?
+
+Fill your report and add screenshots with metric diagrams. Comment on how this experiment showed recovery abilities of the system
+
+## Bonus task
+
+Play around using prepared files and attack different services and pods set up in the system. Increase the user load and check how the system behaves and recovers.
+
+
+
+
+
+
