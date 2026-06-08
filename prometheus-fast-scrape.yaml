@@ -1,0 +1,4 @@
+prometheus:
+  prometheusSpec:
+    scrapeInterval: "2s"       # Polls pods for metrics every 2 seconds
+    evaluationInterval: "2s"   # Evaluates alert rules every 2 seconds

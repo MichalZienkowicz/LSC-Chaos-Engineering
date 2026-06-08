@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgenerator
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: loadgenerator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: loadgenerator
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+      - name: main
+        image: gcr.io/google-samples/microservices-demo/loadgenerator:v0.10.1
+        command: ["locust"]
+        args: ["--host", "http://frontend:80", "--web-host", "0.0.0.0"] 
+        env:
+        - name: FRONTEND_ADDR
+          value: "frontend:80"
+        resources:
+          requests:
+            cpu: 300m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadgenerator
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: loadgenerator
+  ports:
+  - name: locust
+    port: 8089
+    targetPort: 8089
