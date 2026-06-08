@@ -48,10 +48,10 @@ wsl --shutdown
 
 If you are using Linux via WSL, make sure to enable WSL integration in Docker Desktop by going to `Settings` -> `Resources` -> `WSL Integration` and enabling the integration.
 
-![alt text](image-2.png)
+![alt text](Screenshots\image-2.png)
 
 You can check your setup by running `docker --version` in the Bash (or WSL terminal):
-![alt text](image-3.png)
+![alt text](Screenshots\image-3.png)
 
 ## 2. kubectl 
 You can install [kubectl](https://kubernetes.io/docs/reference/kubectl/) via bash commands:
@@ -66,7 +66,7 @@ and check the installation using:
 kubectl version --client
 ```
 
-![alt text](image-4.png)
+![alt text](Screenshots\image-4.png)
 
 ## 3. kind
 Install [kind](https://kind.sigs.k8s.io/docs/user/quick-start/) using something like:
@@ -78,7 +78,7 @@ sudo mv ./kind /usr/local/bin/kind
 kind --version
 ```
 
-![alt text](image-5.png)
+![alt text](Screenshots\image-5.png)
 
 ## 4. Helm
 We recommend installing [Helm](https://helm.sh/docs/intro/install/) using instructions provided on its website:
@@ -90,7 +90,7 @@ chmod 700 get_helm.sh
 helm version
 ```
 
-![alt text](image-6.png)
+![alt text](Screenshots\image-6.png)
 
 ## 5. Creating your cluster  
 
@@ -100,11 +100,11 @@ After succesfull installations, you should be able to create your cluster, which
 kind create cluster --name chaos-lab --config kind-config.yaml
 ```
 
-![alt text](image.png)
+![alt text](Screenshots\image.png)
 
 You should see the cluster running in your Docker Desktop panel: 
 
-![alt text](image-7.png)
+![alt text](Screenshots\image-7.png)
 
 *If during your experiments the system will get too damaged (stop responding), you can always delete it using* `delete cluster --name chaos-lab`, *and create a new one.*
 
@@ -131,7 +131,7 @@ kubectl get pods --watch
 
 You might need to wait up to 10 minutes for all the microservices to have **`Running`** and **`READY`**status.
 
-![alt text](image-8.png)
+![alt text](Screenshots\image-8.png)
 
 Then set up port forwarding for the frontend of the store.
 
@@ -149,7 +149,7 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 ```
 
-![alt text](image-9.png)
+![alt text](Screenshots\image-9.png)
 
 We advise creating separate namespace (we named it `monitoring`) and installling the configured Prometheus and [Grafana](https://grafana.com/) in the `kube-prometheus-stack` provided by the distributors. In case of 
 
@@ -186,8 +186,8 @@ kubectl get secret --namespace monitoring monitoring-stack-grafana -o jsonpath="
 
 After logging into Grafana, you can access the predefined graphs for Kubernetes. Go to `Dashboards` -> `Kubernetes / Compute Resources / Pod` to see example graphs. Leave `Namespace` as 'default' - this is, where our Boutique is running.
 
-![alt text](image-11.png)
-![alt text](image-10.png)
+![alt text](Screenshots\image-11.png)
+![alt text](Screenshots\image-10.png)
 
 To better see how our interactions with the chaos mesh will affect the cluster we need to increase the scraping frequency.
 
